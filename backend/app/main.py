@@ -27,9 +27,25 @@ app = FastAPI(
     version="1.1.0"
 )
 
+# Allowed CORS origins (local dev, Vercel deployments, custom domains)
+CORS_ORIGINS_ENV = os.environ.get("CORS_ORIGINS", "")
+custom_origins = [o.strip() for o in CORS_ORIGINS_ENV.split(",") if o.strip()]
+
+default_origins = [
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+    "http://localhost:8000",
+    "http://127.0.0.1:8000",
+    "https://growthforimpact.co",
+]
+all_allowed_origins = list(set(default_origins + custom_origins))
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=all_allowed_origins,
+    allow_origin_regex=r"^https:\/\/.*\.vercel\.app$",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -38,6 +54,20 @@ app.add_middleware(
 @app.on_event("startup")
 def startup_event():
     init_db()
+    try:
+        conn = get_connection()
+        c = conn.cursor()
+        c.execute("SELECT COUNT(*) FROM candidates")
+        cand_count = c.fetchone()[0]
+        conn.close()
+        if cand_count == 0:
+            try:
+                from .seed_data import seed_candidates
+            except (ImportError, ValueError):
+                from seed_data import seed_candidates
+            seed_candidates()
+    except Exception as e:
+        print("Auto-seed check notice:", e)
 
 PRIMARY_DATA_RESUMES = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "data", "resumes"))
 if os.environ.get("VERCEL"):

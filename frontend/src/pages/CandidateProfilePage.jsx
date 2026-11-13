@@ -15,7 +15,7 @@ import {
   Sparkles
 } from 'lucide-react';
 import ScoreMeter from '../components/ScoreMeter';
-import { getCandidateById, updateCandidateStatus, getProfileLetters } from '../api';
+import { getCandidateById, updateCandidateStatus, getProfileLetters, getResumeDownloadUrl } from '../api';
 
 export default function CandidateProfilePage({ candidateId, onBack }) {
   const [candidate, setCandidate] = useState(null);
@@ -83,7 +83,9 @@ export default function CandidateProfilePage({ candidateId, onBack }) {
 
         <div className="flex items-center space-x-2">
           <a
-            href={`/api/resumes/${candidate.file_name}`}
+            href={getResumeDownloadUrl(candidate.file_name)}
+            target="_blank"
+            rel="noopener noreferrer"
             download
             className="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg border border-slate-200 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors shadow-sm"
           >

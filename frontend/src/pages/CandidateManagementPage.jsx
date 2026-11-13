@@ -22,6 +22,7 @@ export default function CandidateManagementPage({
 }) {
   const [candidates, setCandidates] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [roleFilter, setRoleFilter] = useState('All');
   const [statusFilter, setStatusFilter] = useState('All');
   const [sortBy, setSortBy] = useState('id');
@@ -36,6 +37,7 @@ export default function CandidateManagementPage({
   const loadCandidates = async () => {
     try {
       setLoading(true);
+      setError(null);
       const res = await getCandidates({
         search: searchQuery,
         role: roleFilter,
@@ -46,6 +48,7 @@ export default function CandidateManagementPage({
       setCandidates(res.candidates || []);
     } catch (err) {
       console.error('Failed to load candidates', err);
+      setError(err.message || 'Failed to connect to backend API');
     } finally {
       setLoading(false);
     }
@@ -217,6 +220,17 @@ export default function CandidateManagementPage({
           <div className="p-12 text-center space-y-3">
             <div className="w-8 h-8 border-3 border-[#154E38] border-t-transparent rounded-full animate-spin mx-auto" />
             <p className="text-xs text-slate-400">Loading candidate records...</p>
+          </div>
+        ) : error ? (
+          <div className="p-12 text-center text-xs space-y-2">
+            <p className="text-rose-600 font-semibold">{error}</p>
+            <p className="text-slate-400 text-[11px]">If the backend is starting up, please wait a moment.</p>
+            <button
+              onClick={loadCandidates}
+              className="px-3 py-1.5 bg-[#154E38] text-white rounded-lg text-xs font-semibold hover:bg-[#0E3626]"
+            >
+              Retry
+            </button>
           </div>
         ) : candidates.length === 0 ? (
           <div className="p-12 text-center text-slate-400 text-xs">

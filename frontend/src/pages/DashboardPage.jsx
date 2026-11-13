@@ -19,6 +19,7 @@ import { getDashboardStats, getProfileLetters } from '../api';
 export default function DashboardPage({ onNavigate, onSelectCandidate }) {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     loadStats();
@@ -27,21 +28,45 @@ export default function DashboardPage({ onNavigate, onSelectCandidate }) {
   const loadStats = async () => {
     try {
       setLoading(true);
+      setError(null);
       const data = await getDashboardStats();
       setStats(data);
     } catch (err) {
       console.error('Failed to load dashboard stats', err);
+      setError(err.message || 'Failed to connect to backend API');
     } finally {
       setLoading(false);
     }
   };
 
-  if (loading || !stats) {
+  if (loading) {
     return (
       <div className="p-8 flex items-center justify-center min-h-[60vh]">
         <div className="text-center space-y-3">
           <div className="w-10 h-10 border-4 border-[#154E38] border-t-transparent rounded-full animate-spin mx-auto" />
           <p className="text-xs text-slate-500 font-medium">Loading candidate pipeline...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error || !stats) {
+    return (
+      <div className="p-8 flex items-center justify-center min-h-[60vh]">
+        <div className="text-center space-y-3 max-w-md bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+          <div className="w-10 h-10 rounded-full bg-amber-50 text-amber-700 flex items-center justify-center mx-auto">
+            <Clock className="w-5 h-5" />
+          </div>
+          <h3 className="text-sm font-bold text-slate-800">Connecting to Backend API</h3>
+          <p className="text-xs text-slate-500 leading-relaxed">
+            {error || 'Unable to load statistics.'} If the backend on Render is waking up from sleep, please wait a moment and retry.
+          </p>
+          <button
+            onClick={loadStats}
+            className="px-4 py-2 bg-[#154E38] text-white text-xs font-semibold rounded-lg hover:bg-[#0E3626] transition-colors"
+          >
+            Retry Connection
+          </button>
         </div>
       </div>
     );

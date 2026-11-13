@@ -18,6 +18,7 @@ export default function CandidateRankingsPage({ onSelectCandidate, onOpenCompare
   const [rankings, setRankings] = useState([]);
   const [roleTitle, setRoleTitle] = useState('');
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [selectedIds, setSelectedIds] = useState([]);
 
   useEffect(() => {
@@ -27,11 +28,13 @@ export default function CandidateRankingsPage({ onSelectCandidate, onOpenCompare
   const loadRankings = async () => {
     try {
       setLoading(true);
+      setError(null);
       const res = await getRankings(role);
       setRankings(res.rankings || []);
       setRoleTitle(res.role_title || (role === 'lca' ? 'LCA Consultant' : 'UI/UX Designer'));
     } catch (err) {
       console.error('Failed loading rankings', err);
+      setError(err.message || 'Failed to load rankings');
     } finally {
       setLoading(false);
     }
@@ -122,6 +125,17 @@ export default function CandidateRankingsPage({ onSelectCandidate, onOpenCompare
         <div className="p-16 text-center space-y-3">
           <div className="w-10 h-10 border-4 border-[#154E38] border-t-transparent rounded-full animate-spin mx-auto" />
           <p className="text-xs text-slate-500">Ranking candidate pool...</p>
+        </div>
+      ) : error ? (
+        <div className="bg-white p-12 rounded-2xl border border-slate-200 text-center space-y-2">
+          <p className="text-rose-600 font-semibold text-xs">{error}</p>
+          <p className="text-slate-400 text-[11px]">Failed to connect to rankings service.</p>
+          <button
+            onClick={loadRankings}
+            className="px-3 py-1.5 bg-[#154E38] text-white rounded-lg text-xs font-semibold hover:bg-[#0E3626]"
+          >
+            Retry
+          </button>
         </div>
       ) : (
         <>
