@@ -34,11 +34,14 @@ def startup_event():
     init_db()
 
 PRIMARY_DATA_RESUMES = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "data", "resumes"))
-if os.path.exists(PRIMARY_DATA_RESUMES):
+if os.environ.get("VERCEL"):
+    RESUMES_DIR = "/tmp/resumes"
+    os.makedirs(RESUMES_DIR, exist_ok=True)
+elif os.path.exists(PRIMARY_DATA_RESUMES):
     RESUMES_DIR = PRIMARY_DATA_RESUMES
 else:
     RESUMES_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", "resumes")
-os.makedirs(RESUMES_DIR, exist_ok=True)
+    os.makedirs(RESUMES_DIR, exist_ok=True)
 
 class StatusUpdate(BaseModel):
     status: str
@@ -565,6 +568,8 @@ def get_processing_history():
 @app.get("/api/resumes/{filename}")
 def download_resume(filename: str):
     fpath = os.path.join(RESUMES_DIR, filename)
+    if not os.path.exists(fpath) and os.path.exists(PRIMARY_DATA_RESUMES):
+        fpath = os.path.join(PRIMARY_DATA_RESUMES, filename)
     if not os.path.exists(fpath):
         raise HTTPException(status_code=404, detail="Resume file not found")
     return FileResponse(fpath, filename=filename)
