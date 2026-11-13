@@ -3,9 +3,14 @@ import glob
 import json
 import time
 from datetime import datetime
-from database import init_db, get_connection
-from parser import parse_resume
-from scoring import score_and_classify
+try:
+    from .database import init_db, get_connection
+    from .parser import parse_resume
+    from .scoring import score_and_classify
+except (ImportError, ValueError):
+    from database import init_db, get_connection
+    from parser import parse_resume
+    from scoring import score_and_classify
 
 def seed_candidates():
     init_db()
@@ -54,7 +59,7 @@ def seed_candidates():
         status = "Under Review"
         
         cursor.execute("""
-        INSERT INTO candidates (
+        INSERT OR REPLACE INTO candidates (
             id, name, title, email, phone, location, experience_years,
             primary_role, lca_score, uiux_score, status,
             file_name, file_path, file_type, raw_text,

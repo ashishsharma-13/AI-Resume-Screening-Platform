@@ -10,10 +10,16 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 from pydantic import BaseModel
 
-from database import init_db, get_connection
-from parser import parse_resume
-from scoring import score_and_classify
-from scraper import scrape_job_description_url
+try:
+    from .database import init_db, get_connection
+    from .parser import parse_resume
+    from .scoring import score_and_classify
+    from .scraper import scrape_job_description_url
+except (ImportError, ValueError):
+    from database import init_db, get_connection
+    from parser import parse_resume
+    from scoring import score_and_classify
+    from scraper import scrape_job_description_url
 
 app = FastAPI(
     title="Growth For Impact – AI Resume Screening System",
