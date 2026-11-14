@@ -41,31 +41,37 @@ export const getDashboardStats = async () => {
 };
 
 export const getCandidates = async (params = {}) => {
-  const res = await api.get('/candidates', { params });
+  const cleanedParams = {};
+  Object.keys(params).forEach((key) => {
+    if (params[key] !== null && params[key] !== undefined && params[key] !== '') {
+      cleanedParams[key] = params[key];
+    }
+  });
+  const res = await api.get('/candidates', { params: cleanedParams });
   return res.data;
 };
 
 export const getCandidateById = async (id) => {
-  const res = await api.get(`/candidates/${id}`);
+  const res = await api.get(`/candidates/${encodeURIComponent(id)}`);
   return res.data;
 };
 
 export const updateCandidateStatus = async (id, status) => {
-  const res = await api.patch(`/candidates/${id}/status`, { status });
+  const res = await api.patch(`/candidates/${encodeURIComponent(id)}/status`, { status });
   return res.data;
 };
 
 export const getRankings = async (role = 'lca') => {
-  const res = await api.get('/rankings', { params: { role } });
+  const cleanRole = (role || '').toLowerCase().includes('ui') ? 'uiux' : 'lca';
+  const res = await api.get('/rankings', { params: { role: cleanRole } });
   return res.data;
 };
 
 export const uploadResume = async (file) => {
   const formData = new FormData();
   formData.append('file', file);
-  const res = await api.post('/upload', formData, {
-    headers: { 'Content-Type': 'multipart/form-data' },
-  });
+  // Do not set Content-Type manually so the browser/Axios automatically sets the multipart boundary
+  const res = await api.post('/upload', formData);
   return res.data;
 };
 

@@ -14,6 +14,7 @@ import { getAnalytics } from '../api';
 export default function AnalyticsPage() {
   const [analytics, setAnalytics] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     loadAnalytics();
@@ -22,20 +23,36 @@ export default function AnalyticsPage() {
   const loadAnalytics = async () => {
     try {
       setLoading(true);
+      setError(null);
       const data = await getAnalytics();
       setAnalytics(data);
     } catch (err) {
       console.error('Failed loading analytics', err);
+      setError(err.message || 'Failed loading analytics');
     } finally {
       setLoading(false);
     }
   };
 
-  if (loading || !analytics) {
+  if (loading) {
     return (
       <div className="p-16 text-center space-y-3">
         <div className="w-10 h-10 border-4 border-[#154E38] border-t-transparent rounded-full animate-spin mx-auto" />
         <p className="text-xs text-slate-500">Compiling recruitment analytics...</p>
+      </div>
+    );
+  }
+
+  if (error || !analytics) {
+    return (
+      <div className="p-16 text-center space-y-3 max-w-md mx-auto">
+        <p className="text-rose-600 font-semibold text-xs">{error || 'Failed to load recruitment analytics'}</p>
+        <button
+          onClick={loadAnalytics}
+          className="px-3 py-1.5 bg-[#154E38] text-white rounded-lg text-xs font-semibold hover:bg-[#0E3626]"
+        >
+          Retry
+        </button>
       </div>
     );
   }

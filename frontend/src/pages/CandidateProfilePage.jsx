@@ -20,6 +20,7 @@ import { getCandidateById, updateCandidateStatus, getProfileLetters, getResumeDo
 export default function CandidateProfilePage({ candidateId, onBack }) {
   const [candidate, setCandidate] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [status, setStatus] = useState('Under Review');
   const [updating, setUpdating] = useState(false);
 
@@ -32,11 +33,13 @@ export default function CandidateProfilePage({ candidateId, onBack }) {
   const loadProfile = async () => {
     try {
       setLoading(true);
+      setError(null);
       const data = await getCandidateById(candidateId);
       setCandidate(data);
       setStatus(data.status);
     } catch (err) {
       console.error('Failed to load candidate profile', err);
+      setError(err.message || 'Failed to load candidate profile');
     } finally {
       setLoading(false);
     }
@@ -55,11 +58,33 @@ export default function CandidateProfilePage({ candidateId, onBack }) {
     }
   };
 
-  if (loading || !candidate) {
+  if (loading) {
     return (
       <div className="p-12 text-center space-y-3">
         <div className="w-10 h-10 border-4 border-[#154E38] border-t-transparent rounded-full animate-spin mx-auto" />
         <p className="text-xs text-slate-500">Loading candidate profile...</p>
+      </div>
+    );
+  }
+
+  if (error || !candidate) {
+    return (
+      <div className="p-12 text-center space-y-4 max-w-md mx-auto">
+        <p className="text-rose-600 font-semibold text-xs">{error || 'Candidate profile not found'}</p>
+        <div className="flex items-center justify-center space-x-3">
+          <button
+            onClick={onBack}
+            className="px-3 py-1.5 border border-slate-200 text-slate-700 rounded-lg text-xs font-semibold hover:bg-slate-50"
+          >
+            Go Back
+          </button>
+          <button
+            onClick={loadProfile}
+            className="px-3 py-1.5 bg-[#154E38] text-white rounded-lg text-xs font-semibold hover:bg-[#0E3626]"
+          >
+            Retry
+          </button>
+        </div>
       </div>
     );
   }

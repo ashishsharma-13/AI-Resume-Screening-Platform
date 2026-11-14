@@ -14,6 +14,7 @@ import { getProcessingHistory } from '../api';
 export default function ProcessingHistoryPage({ onSelectCandidate }) {
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [search, setSearch] = useState('');
   const [activeLog, setActiveLog] = useState(null);
 
@@ -24,10 +25,12 @@ export default function ProcessingHistoryPage({ onSelectCandidate }) {
   const loadLogs = async () => {
     try {
       setLoading(true);
+      setError(null);
       const res = await getProcessingHistory();
       setLogs(res.logs || []);
     } catch (err) {
       console.error('Failed loading history', err);
+      setError(err.message || 'Failed loading processing history');
     } finally {
       setLoading(false);
     }
@@ -115,6 +118,16 @@ export default function ProcessingHistoryPage({ onSelectCandidate }) {
           <div className="p-16 text-center space-y-3">
             <div className="w-8 h-8 border-3 border-[#154E38] border-t-transparent rounded-full animate-spin mx-auto" />
             <p className="text-xs text-slate-400">Loading audit history...</p>
+          </div>
+        ) : error ? (
+          <div className="p-16 text-center space-y-3">
+            <p className="text-rose-600 font-semibold text-xs">{error}</p>
+            <button
+              onClick={loadLogs}
+              className="px-3 py-1.5 bg-[#154E38] text-white rounded-lg text-xs font-semibold hover:bg-[#0E3626]"
+            >
+              Retry
+            </button>
           </div>
         ) : (
           <div className="overflow-x-auto">

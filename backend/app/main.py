@@ -87,13 +87,13 @@ class ScrapeRequest(BaseModel):
 
 class JobDescriptionCreate(BaseModel):
     title: str
-    role_type: str
+    role_type: str = "General"
     source_url: Optional[str] = None
-    location: str
-    experience_required: str
-    responsibilities: List[str]
-    qualifications: List[str]
-    criteria_weights: List[Dict[str, Any]]
+    location: str = "Remote"
+    experience_required: str = "0 to 1 year"
+    responsibilities: List[str] = []
+    qualifications: List[str] = []
+    criteria_weights: List[Dict[str, Any]] = []
 
 class JobDescriptionUpdate(BaseModel):
     title: Optional[str] = None
