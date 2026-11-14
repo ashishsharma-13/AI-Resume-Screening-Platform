@@ -1,20 +1,18 @@
 import axios from 'axios';
 
 // Resolve backend base URL from Vercel / Vite environment variables
-// Format: https://ai-resume-screening-api-60uf.onrender.com
-const envApiUrl = import.meta.env.VITE_API_BASE_URL || '';
+// Default to the deployed Render backend
+const DEFAULT_BACKEND_URL = 'https://ai-resume-screening-api-60uf.onrender.com';
+const envApiUrl = import.meta.env.VITE_API_BASE_URL || DEFAULT_BACKEND_URL;
 
 export const getApiBaseUrl = () => {
-  if (envApiUrl && envApiUrl.trim()) {
-    return envApiUrl.trim().replace(/\/+$/, '');
-  }
-  return '';
+  const url = (envApiUrl && envApiUrl.trim()) ? envApiUrl.trim() : DEFAULT_BACKEND_URL;
+  return url.replace(/\/+$/, '');
 };
 
-// If VITE_API_BASE_URL is provided, route directly to it (appending /api if not present)
-// Otherwise fallback to relative /api (handled by Vite proxy in dev or reverse proxy)
+// Guarantee the /api prefix for all backend requests
 const base = getApiBaseUrl();
-const apiBaseUrl = base ? (base.endsWith('/api') ? base : `${base}/api`) : '/api';
+const apiBaseUrl = base.endsWith('/api') ? base : `${base}/api`;
 
 const api = axios.create({
   baseURL: apiBaseUrl,
@@ -111,9 +109,7 @@ export const getProcessingHistory = async () => {
 };
 
 export const getResumeDownloadUrl = (filename) => {
-  const base = getApiBaseUrl();
-  const prefix = base ? (base.endsWith('/api') ? base : `${base}/api`) : '/api';
-  return `${prefix}/resumes/${encodeURIComponent(filename)}`;
+  return `${apiBaseUrl}/resumes/${encodeURIComponent(filename)}`;
 };
 
 export function getProfileLetters(name) {

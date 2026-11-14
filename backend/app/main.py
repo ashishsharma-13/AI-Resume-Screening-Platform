@@ -69,15 +69,9 @@ def startup_event():
     except Exception as e:
         print("Auto-seed check notice:", e)
 
-PRIMARY_DATA_RESUMES = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "data", "resumes"))
-if os.environ.get("VERCEL"):
-    RESUMES_DIR = "/tmp/resumes"
-    os.makedirs(RESUMES_DIR, exist_ok=True)
-elif os.path.exists(PRIMARY_DATA_RESUMES):
-    RESUMES_DIR = PRIMARY_DATA_RESUMES
-else:
-    RESUMES_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", "resumes")
-    os.makedirs(RESUMES_DIR, exist_ok=True)
+PRIMARY_DATA_RESUMES = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", "resumes"))
+os.makedirs(PRIMARY_DATA_RESUMES, exist_ok=True)
+RESUMES_DIR = PRIMARY_DATA_RESUMES
 
 class StatusUpdate(BaseModel):
     status: str
@@ -288,12 +282,23 @@ def update_candidate_status(candidate_id: str, update: StatusUpdate):
     return {"success": True, "id": candidate_id, "status": update.status, "updated_at": now}
 
 @app.get("/api/rankings")
-def get_rankings(role: str = Query("lca", pattern="^(lca|uiux)$")):
+def get_rankings(role: str = Query("lca")):
+    role_norm = (role or "lca").strip().lower()
+    if role_norm in ["lca", "lca consultant"]:
+        selected_role = "lca"
+    elif role_norm in ["uiux", "ui/ux", "ui/ux designer", "uiux designer"]:
+        selected_role = "uiux"
+    else:
+        raise HTTPException(
+            status_code=422,
+            detail=f"Invalid role '{role}'. Allowed roles: 'lca', 'uiux' (case-insensitive)."
+        )
+    
     conn = get_connection()
     c = conn.cursor()
     
-    score_col = "lca_score" if role == "lca" else "uiux_score"
-    role_title = "LCA Consultant" if role == "lca" else "UI/UX Designer"
+    score_col = "lca_score" if selected_role == "lca" else "uiux_score"
+    role_title = "LCA Consultant" if selected_role == "lca" else "UI/UX Designer"
     
     c.execute(f"""
     SELECT id, name, title, primary_role, lca_score, uiux_score, status,
@@ -314,7 +319,7 @@ def get_rankings(role: str = Query("lca", pattern="^(lca|uiux)$")):
         item["strengths"] = score_details.get("strengths", [])
         item["missing_qualifications"] = score_details.get("missing_qualifications", [])
         
-        if role == "lca":
+        if selected_role == "lca":
             item["criteria_breakdown"] = score_details.get("lca_details", {}).get("criteria", [])
         else:
             item["criteria_breakdown"] = score_details.get("uiux_details", {}).get("criteria", [])
@@ -323,7 +328,7 @@ def get_rankings(role: str = Query("lca", pattern="^(lca|uiux)$")):
         
     conn.close()
     return {
-        "role": role,
+        "role": selected_role,
         "role_title": role_title,
         "total": len(rankings),
         "rankings": rankings

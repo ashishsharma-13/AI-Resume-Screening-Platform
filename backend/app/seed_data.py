@@ -17,11 +17,11 @@ def seed_candidates():
     conn = get_connection()
     cursor = conn.cursor()
     
-    primary_dir = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "data", "resumes"))
-    if os.path.exists(primary_dir):
-        resumes_dir = primary_dir
-    else:
-        resumes_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", "resumes")
+    resumes_dir = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", "resumes"))
+    if not os.path.exists(resumes_dir):
+        primary_dir = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "data", "resumes"))
+        if os.path.exists(primary_dir):
+            resumes_dir = primary_dir
     files = sorted(glob.glob(os.path.join(resumes_dir, "*.docx")) + glob.glob(os.path.join(resumes_dir, "*.pdf")))
     
     print(f"Found {len(files)} resumes to process from {resumes_dir}...")
