@@ -5,7 +5,7 @@ import time
 import uuid
 from datetime import datetime
 from typing import Optional, List, Dict, Any
-from fastapi import FastAPI, UploadFile, File, Form, HTTPException, Query
+from fastapi import FastAPI, UploadFile, File, Form, HTTPException, Query, Header
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 from pydantic import BaseModel
@@ -280,6 +280,79 @@ def update_candidate_status(candidate_id: str, update: StatusUpdate):
     conn.commit()
     conn.close()
     return {"success": True, "id": candidate_id, "status": update.status, "updated_at": now}
+
+ADMIN_SECRET_KEY = os.environ.get("ADMIN_SECRET_KEY", "gfi-secret-admin-auth-2026")
+
+@app.delete("/api/admin/candidates/{candidate_id}")
+def delete_candidate_admin(
+    candidate_id: str,
+    x_admin_secret: Optional[str] = Header(None, alias="X-Admin-Secret")
+):
+    """
+    Authenticated administrative deletion endpoint.
+    Safely purges synthetic or test candidate uploads while protecting the original 47 baseline resumes.
+    """
+    if not x_admin_secret or x_admin_secret != ADMIN_SECRET_KEY:
+        raise HTTPException(status_code=403, detail="Forbidden: Invalid or missing administrator authorization")
+
+    # Safety guard: Never allow deleting original baseline candidates CAND-001 through CAND-047
+    original_ids = {f"CAND-{i:03d}" for i in range(1, 48)}
+    if candidate_id in original_ids:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Safety Lock: {candidate_id} belongs to the 47 original baseline candidates and cannot be deleted."
+        )
+
+    conn = get_connection()
+    c = conn.cursor()
+
+    c.execute("SELECT id, name, file_path, file_name FROM candidates WHERE id = ?", (candidate_id,))
+    row = c.fetchone()
+    if not row:
+        conn.close()
+        raise HTTPException(status_code=404, detail=f"Candidate {candidate_id} not found")
+
+    cand_name = row["name"]
+    file_path = row["file_path"]
+    file_name = row["file_name"]
+
+    # Delete uploaded resume file from disk if present
+    file_deleted = None
+    target_paths = [
+        file_path,
+        os.path.join(RESUMES_DIR, file_name) if file_name else None,
+        os.path.join(RESUMES_DIR, os.path.basename(file_path)) if file_path else None
+    ]
+    for p in target_paths:
+        if p and os.path.exists(p) and not os.path.basename(p).startswith("anonymized_"):
+            try:
+                os.remove(p)
+                file_deleted = p
+                break
+            except Exception as e:
+                print(f"Notice: Failed to remove file {p}: {e}")
+
+    # Remove associated processing logs
+    c.execute("DELETE FROM processing_logs WHERE candidate_id = ?", (candidate_id,))
+    deleted_logs = c.rowcount
+
+    # Remove candidate record
+    c.execute("DELETE FROM candidates WHERE id = ?", (candidate_id,))
+    c.execute("SELECT COUNT(*) FROM candidates")
+    remaining_count = c.fetchone()[0]
+
+    conn.commit()
+    conn.close()
+
+    return {
+        "success": True,
+        "deleted_candidate_id": candidate_id,
+        "deleted_candidate_name": cand_name,
+        "deleted_file": file_deleted,
+        "deleted_logs_count": deleted_logs,
+        "remaining_candidates_count": remaining_count,
+        "message": f"Candidate {candidate_id} ({cand_name}) successfully removed from database and disk."
+    }
 
 @app.get("/api/rankings")
 def get_rankings(role: str = Query("lca")):
